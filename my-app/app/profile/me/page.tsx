@@ -10,7 +10,14 @@ export default function EditProfilePage() {
 
   // Fetch current user data
   async function loadProfile() {
-    const res = await fetch("/api/users/me");
+    const token = localStorage.getItem("access_token");
+
+    const res = await fetch("/api/users/me", {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
     const data = await res.json();
 
     if (res.ok) {
@@ -29,23 +36,29 @@ export default function EditProfilePage() {
 
   async function handleSave() {
     setSaving(true);
-
+  
+    const token = localStorage.getItem("access_token");
+  
     const res = await fetch("/api/users/me", {
       method: "PUT",
       body: JSON.stringify(profile),
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
     });
-
+  
     const data = await res.json();
     setSaving(false);
-
+  
     if (!res.ok) {
       alert(data.error);
       return;
     }
-
+  
     alert("Profile updated!");
   }
+    
 
   if (loading) return <div className="p-6">Loading...</div>;
 
@@ -56,13 +69,13 @@ export default function EditProfilePage() {
       {/* Avatar Upload */}
       <div className="flex items-center gap-4 mb-6">
         <img
-          src={profile.avatar_url || "/default-avatar.png"}
+          src={profile?.avatar_url || "/default-avatar.png"}
           alt="avatar"
           className="object-cover w-20 h-20 border rounded-full"
         />
 
         <AvatarUpload
-          onUpload={(url) => setProfile({ ...profile, avatar_url: url })}
+          onUpload={(url:any) => setProfile({ ...profile, avatar_url: url })}
         />
       </div>
 
@@ -70,7 +83,7 @@ export default function EditProfilePage() {
         <input
           className="w-full p-2 border rounded"
           placeholder="Username"
-          value={profile.username}
+          value={profile?.username ?? ""}
           onChange={(e) =>
             setProfile({ ...profile, username: e.target.value })
           }
@@ -79,7 +92,7 @@ export default function EditProfilePage() {
         <input
           className="w-full p-2 border rounded"
           placeholder="First name"
-          value={profile.first_name || ""}
+          value={profile?.first_name || ""}
           onChange={(e) =>
             setProfile({ ...profile, first_name: e.target.value })
           }
@@ -88,7 +101,7 @@ export default function EditProfilePage() {
         <input
           className="w-full p-2 border rounded"
           placeholder="Last name"
-          value={profile.last_name || ""}
+          value={profile?.last_name || ""}
           onChange={(e) =>
             setProfile({ ...profile, last_name: e.target.value })
           }
@@ -98,7 +111,7 @@ export default function EditProfilePage() {
           className="w-full p-2 border rounded"
           placeholder="Bio (max 160 chars)"
           maxLength={160}
-          value={profile.bio || ""}
+          value={profile?.bio || ""}
           onChange={(e) =>
             setProfile({ ...profile, bio: e.target.value })
           }
@@ -107,7 +120,7 @@ export default function EditProfilePage() {
         <input
           className="w-full p-2 border rounded"
           placeholder="Website"
-          value={profile.website || ""}
+          value={profile?.website || ""}
           onChange={(e) =>
             setProfile({ ...profile, website: e.target.value })
           }
@@ -116,7 +129,7 @@ export default function EditProfilePage() {
         <input
           className="w-full p-2 border rounded"
           placeholder="Location"
-          value={profile.location || ""}
+          value={profile?.location || ""}
           onChange={(e) =>
             setProfile({ ...profile, location: e.target.value })
           }

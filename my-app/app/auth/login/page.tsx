@@ -27,9 +27,14 @@ export default function LoginPage() {
     setLoading(false);
 
     if (res.ok) {
+      // Save tokens
+      localStorage.setItem("access_token", data.session.access_token);
+      localStorage.setItem("refresh_token", data.session.refresh_token);
+    
       alert("Login successful!");
-      window.location.href = "/profile/me"; // we will build this page next
-    } else {
+      window.location.href = "/profile/me";
+    }
+     else {
       alert(data.error || "Invalid credentials");
     }
   }

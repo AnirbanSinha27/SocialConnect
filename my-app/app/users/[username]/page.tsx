@@ -11,7 +11,8 @@ export default function UserProfilePage({ params }: any) {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   async function loadProfile() {
-    const res = await fetch(`/api/users/${username}`);
+    const res = await fetch(`/api/users/profile/${username}`)
+;
     const json = await res.json();
 
     if (!res.ok) {
