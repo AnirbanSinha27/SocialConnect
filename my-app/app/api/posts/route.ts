@@ -34,3 +34,15 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ post: data });
 }
+
+export async function GET() {
+    const supabase = supabaseServer();
+  
+    const { data: posts } = await supabase
+      .from("posts")
+      .select("*, profiles(username, avatar_url)")
+      .order("created_at", { ascending: false });
+  
+    return NextResponse.json({ posts });
+  }
+  
