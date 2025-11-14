@@ -3,6 +3,47 @@
 import { useEffect, useState, use } from "react";
 
 export default function PostPage({ params }: any) {
+
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState("");
+
+  async function saveEdit() {
+    const token = localStorage.getItem("access_token");
+    if (!token) return alert("Login required");
+  
+    const res = await fetch(`/api/posts/${id}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ content: editContent }),
+    });
+  
+    if (!res.ok) return alert("Failed to update");
+    setIsEditing(false);
+    setPost((p: any) => ({ ...p, content: editContent }));
+  }
+
+  
+  async function deletePost() {
+    if (!confirm("Delete this post permanently?")) return;
+  
+    const token = localStorage.getItem("access_token");
+  
+    const res = await fetch(`/api/posts/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  
+    if (!res.ok) return alert("Failed to delete");
+  
+    alert("Deleted!");
+    window.location.href = "/posts"; // redirect to feed
+  }  
+
+
   // Required for Next.js 14+ dynamic routes
   const { id } = use(params as Promise<{ id: string }>);
 
@@ -20,6 +61,7 @@ export default function PostPage({ params }: any) {
   async function loadPost() {
     const res = await fetch(`/api/posts/${id}`);
     const json = await res.json();
+
     if (res.ok) setPost(json.post);
 
     // Like status
@@ -32,6 +74,14 @@ export default function PostPage({ params }: any) {
       if (likeRes.ok) {
         const likeJson = await likeRes.json();
         setLiked(likeJson.liked);
+      }
+      const meRes = await fetch("/api/users/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    
+      if (meRes.ok) {
+        const meJson = await meRes.json();
+        setCurrentUserId(meJson.user.id);
       }
     }
   }
@@ -145,7 +195,26 @@ export default function PostPage({ params }: any) {
       </div>
 
       {/* Post Content */}
-      <p className="mt-2">{post.content}</p>
+      {isEditing ? (
+      <div className="mt-4">
+        <textarea
+          className="w-full p-2 border rounded"
+          value={editContent}
+          onChange={(e) => setEditContent(e.target.value)}
+        />
+        <div className="flex gap-3 mt-2">
+          <button onClick={saveEdit} className="px-3 py-1 bg-blue-600 text-white rounded">
+            Save
+          </button>
+          <button onClick={() => setIsEditing(false)} className="px-3 py-1 bg-gray-400 text-white rounded">
+            Cancel
+          </button>
+        </div>
+      </div>
+    ) : (
+      <p className="mt-4">{post.content}</p>
+    )}
+
 
       {post.image_url && (
         <img src={post.image_url} className="w-full mt-3 rounded" />
@@ -164,6 +233,28 @@ export default function PostPage({ params }: any) {
       >
         {liked ? "❤️ Liked" : "🤍 Like"} ({post.like_count})
       </button>
+
+      {currentUserId === post.author && (
+        <div className="mt-4 flex gap-3">
+          <button
+            onClick={() => {
+              setEditContent(post.content);
+              setIsEditing(true);
+            }}
+            className="px-3 py-1 bg-yellow-500 text-white rounded"
+          >
+            Edit
+          </button>
+
+          <button
+            onClick={deletePost}
+            className="px-3 py-1 bg-red-600 text-white rounded"
+          >
+            Delete
+          </button>
+        </div>
+      )}
+
 
       {/* COMMENTS SECTION */}
       <div className="border-t pt-4">

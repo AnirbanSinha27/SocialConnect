@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 
+
 // Extract user (for POST)
 async function getUser(req: Request) {
   const authHeader = req.headers.get("authorization");
@@ -65,3 +66,83 @@ export async function GET(
 
   return NextResponse.json({ post: data });
 }
+
+export async function PUT(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
+  const { user } = await getUser(req); // FIXED
+
+  if (!user)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const supabase = supabaseServer();
+  const { content, image_url, category } = await req.json();
+
+  // Ensure user owns the post
+  const { data: existing } = await supabase
+    .from("posts")
+    .select("author")
+    .eq("id", id)
+    .single();
+
+  if (!existing || existing.author !== user.id) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Update post
+  const { error } = await supabase
+    .from("posts")
+    .update({
+      content,
+      image_url,
+      category,
+      updated_at: new Date(),
+    })
+    .eq("id", id);
+
+  if (error)
+    return NextResponse.json({ error: error.message }, { status: 400 });
+
+  return NextResponse.json({ message: "Post updated" });
+}
+
+
+/* ------------------------------------
+   DELETE POST (DELETE /api/posts/:id)
+------------------------------------ */
+export async function DELETE(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
+  const { user } = await getUser(req); // FIXED
+
+  if (!user)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const supabase = supabaseServer();
+
+  // Ownership check
+  const { data: existing } = await supabase
+    .from("posts")
+    .select("author")
+    .eq("id", id)
+    .single();
+
+  if (!existing || existing.author !== user.id) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { error } = await supabase
+    .from("posts")
+    .delete()
+    .eq("id", id);
+
+  if (error)
+    return NextResponse.json({ error: error.message }, { status: 400 });
+
+  return NextResponse.json({ message: "Post deleted" });
+}
+

@@ -8,7 +8,7 @@ export default function FeedPage() {
 
   async function loadPosts() {
     try {
-      const res = await fetch(`/api/posts?page=1&limit=20`);
+      const res = await fetch(`/api/posts?page=1&=20`);
       const json = await res.json();
 
       if (res.ok) {
