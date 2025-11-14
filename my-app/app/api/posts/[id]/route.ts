@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 
-/**
- * Extract user from Authorization header
- */
+// Extract user (for POST)
 async function getUser(req: Request) {
   const authHeader = req.headers.get("authorization");
   const token = authHeader?.replace("Bearer ", "").trim();
 
-  const supabaseForAuth = supabaseServer(); // no token yet
+  const supabaseForAuth = supabaseServer();
 
   if (!token) return { user: null, supabase: supabaseForAuth };
 
@@ -18,23 +16,15 @@ async function getUser(req: Request) {
 
   return {
     user: data.user,
-    supabase: supabaseServer(token), // attach token for RLS
+    supabase: supabaseServer(token), 
   };
 }
 
-/**
- * POST: Create new post
- */
+// POST — create post
 export async function POST(req: Request) {
-  console.log("HEADERS:", Object.fromEntries(req.headers));
-
   const { user, supabase } = await getUser(req);
 
-  if (!user) {
-    console.log("USER IS NULL");
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
 
@@ -44,14 +34,33 @@ export async function POST(req: Request) {
       content: body.content,
       image_url: body.image_url || null,
       category: body.category || "general",
-      author: user.id, // IMPORTANT
+      author: user.id,
     })
     .select()
     .single();
 
-  if (error) {
-    console.error(error);
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  return NextResponse.json({ post: data });
+}
+
+// GET — fetch single post
+export async function GET(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
+
+  const supabase = supabaseServer();
+
+  const { data, error } = await supabase
+    .from("posts")
+    .select("*, profiles(username, avatar_url)")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!data) {
+    return NextResponse.json({ error: "Post not found" }, { status: 404 });
   }
 
   return NextResponse.json({ post: data });

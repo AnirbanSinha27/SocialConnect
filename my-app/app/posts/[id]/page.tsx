@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { use } from "react";
 
 export default function PostPage({ params }: any) {
-  const { id } = params;
+  const { id } = use(params as Promise<{ id: string }>);
   const [post, setPost] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
