@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/adminUtil";
 
-export async function POST(
+export async function DELETE(
   req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
@@ -10,15 +10,13 @@ export async function POST(
 
   const { id } = await context.params;
 
-  // Update user role in profiles table
   const { error } = await admin.supabase
-    .from("profiles")
-    .update({ role: "deactivated" })
+    .from("posts")
+    .delete()
     .eq("id", id);
 
-  if (error) {
+  if (error)
     return NextResponse.json({ error: error.message }, { status: 400 });
-  }
 
-  return NextResponse.json({ message: "User deactivated" });
+  return NextResponse.json({ message: "Post deleted" });
 }
