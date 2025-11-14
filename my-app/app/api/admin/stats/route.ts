@@ -3,7 +3,14 @@ import { requireAdmin } from "@/lib/adminUtil";
 
 export async function GET(req: Request) {
   const admin = await requireAdmin(req);
-  if ("error" in admin) return admin.error;
+
+  // If requireAdmin returned an error → block access
+  if ("error" in admin) {
+    return NextResponse.json(
+      { error: "Only admins can access this route" },
+      { status: 403 }
+    );
+  }
 
   const supabase = admin.supabase;
 

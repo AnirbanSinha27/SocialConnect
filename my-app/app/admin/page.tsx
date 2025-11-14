@@ -3,47 +3,40 @@
 import { useEffect, useState } from "react";
 
 export default function AdminDashboard() {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<any>(null);
 
-  async function loadUsers() {
+  async function loadStats() {
     const token = localStorage.getItem("access_token");
-
-    const res = await fetch("/api/admin/users", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    const res = await fetch("/api/admin/stats", {
+      headers: { Authorization: `Bearer ${token}` },
     });
 
+    if (res.status === 403) {
+      alert("Only admins can access this page");
+      window.location.href = "/profile/me"; // redirect to home
+      return;
+    }
+
     const json = await res.json();
-    console.log("Admin users:", json);
-
-    if (res.ok) setUsers(json.users);
-
-    setLoading(false);
+    if (res.ok) setStats(json);
   }
 
   useEffect(() => {
-    loadUsers();
+    loadStats();
   }, []);
 
-  if (loading) return <div className="p-6">Loading…</div>;
+  if (!stats) return <div>Loading stats...</div>;
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Admin Dashboard</h1>
+    <div className="bg-gray-800">
+      <h1 className="text-2xl font-bold mb-6">📊 Admin Dashboard</h1>
 
-      {users?.length === 0 ? (
-        <p>No users yet.</p>
-      ) : (
-        <ul className="space-y-2">
-          {users?.map((u: any) => (
-            <li key={u.id} className="p-3 border rounded">
-              {u.username} — {u.email}
-            </li>
-          ))}
-        </ul>
-      )}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="p-4 bg-black rounded shadow">Users: {stats.total_users}</div>
+        <div className="p-4 bg-black rounded shadow">Posts: {stats.total_posts}</div>
+        <div className="p-4 bg-black rounded shadow">Comments: {stats.total_comments}</div>
+        <div className="p-4 bg-black rounded shadow">Likes: {stats.total_likes}</div>
+      </div>
     </div>
   );
 }
