@@ -9,16 +9,21 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
 
   if (!token) return NextResponse.json({ liked: false });
 
-  const { data } = await supabaseAuth.auth.getUser(token);
-  if (!data?.user) return NextResponse.json({ liked: false });
+  const { data: authData, error: authError } = await supabaseAuth.auth.getUser(token);
+  if (authError || !authData?.user) return NextResponse.json({ liked: false });
 
   const supabase = supabaseServer(token);
 
-  const { count } = await supabase
+  const { data, error, count } = await supabase
     .from("likes")
     .select("*", { count: "exact", head: true })
-    .eq("user_id", data.user.id)
+    .eq("user_id", authData.user.id)
     .eq("post_id", id);
 
-  return NextResponse.json({ liked: count! > 0 });
+  if (error) {
+    console.error("Error checking like status:", error);
+    return NextResponse.json({ liked: false });
+  }
+
+  return NextResponse.json({ liked: (count ?? 0) > 0 });
 }

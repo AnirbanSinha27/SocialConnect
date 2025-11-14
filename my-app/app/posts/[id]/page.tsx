@@ -7,84 +7,64 @@ export default function PostPage({ params }: any) {
   const [post, setPost] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [liked, setLiked] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  
+
   async function loadPost() {
     // 1. Fetch post
     const res = await fetch(`/api/posts/${id}`);
     const json = await res.json();
     if (res.ok) setPost(json.post);
-
-    // 2. Fetch logged-in user
-    const access = localStorage.getItem("access_token");
-
-    const meRes = await fetch("/api/users/me", {
-      headers: {
-        Authorization: `Bearer ${access}`,
-      },
-    });
-
-    const meJson = await meRes.json();
-
-    if (meRes.ok) {
-      setCurrentUserId(meJson.user.id);
-
-      // Check if the user already liked the post
-      const access = localStorage.getItem("access_token");
-
-      const likeCheck = await fetch(`/api/posts/${id}/isLiked`, {
+  
+    // 2. Check if user is logged in and if they liked the post
+    const token = localStorage.getItem("access_token");
+    
+    if (token) {
+      const likeRes = await fetch(`/api/posts/${id}/like`, {  // Changed from /like/status
         headers: {
-          Authorization: `Bearer ${access}`,
+          Authorization: `Bearer ${token}`,
         },
       });
-
-      const likeJson = await likeCheck.json();
+  
+      const likeJson = await likeRes.json();
       setLiked(likeJson.liked);
     }
-
+  
     setLoading(false);
   }
 
   async function toggleLike() {
-    if (!currentUserId) {
+    const token = localStorage.getItem("access_token");
+
+    if (!token) {
       alert("Please log in first");
       return;
     }
 
     if (liked) {
-      // UNLIKE
       await fetch(`/api/posts/${id}/like`, {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       setLiked(false);
-      setPost((p: any) => ({
-        ...p,
-        like_count: Math.max((p.like_count || 1) - 1, 0),
-      }));
+      setPost((p: any) => ({ ...p, like_count: p.like_count - 1 }));
     } else {
-      // LIKE
       await fetch(`/api/posts/${id}/like`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       setLiked(true);
-      setPost((p: any) => ({
-        ...p,
-        like_count: (p.like_count || 0) + 1,
-      }));
+      setPost((p: any) => ({ ...p, like_count: p.like_count + 1 }));
     }
   }
 
   useEffect(() => {
     loadPost();
-  }, []);
+  }, [id]);
 
   if (loading) return <div className="p-6">Loading...</div>;
   if (!post) return <div>Not found</div>;
@@ -109,11 +89,10 @@ export default function PostPage({ params }: any) {
         {new Date(post.created_at).toLocaleString()}
       </p>
 
-      {/* ❤️ Like button */}
       <button
         onClick={toggleLike}
         className={`mt-4 px-4 py-2 rounded text-white ${
-          liked ? "bg-red-500" : "bg-gray-400"
+          liked ? "bg-red-500" : "bg-gray-300"
         }`}
       >
         {liked ? "❤️ Liked" : "🤍 Like"} ({post.like_count})
