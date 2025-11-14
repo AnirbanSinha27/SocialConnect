@@ -20,6 +20,9 @@ async function getUser(req: Request) {
   };
 }
 
+/* -------------------------------------------
+   POST /api/posts → Create a Post (Keep Same)
+-------------------------------------------- */
 export async function POST(req: Request) {
   const { user, supabase } = await getUser(req);
 
@@ -56,13 +59,39 @@ export async function POST(req: Request) {
   return NextResponse.json({ post: data });
 }
 
-export async function GET() {
-  const supabase = supabaseServer();
+/* -------------------------------------------
+   GET /api/posts?page=1&limit=10  (Pagination)
+-------------------------------------------- */
+export async function GET(req: Request) {
+  const supabase = supabaseServer(); // service role → bypass RLS
 
-  const { data: posts } = await supabase
+  const url = new URL(req.url);
+  const page = Number(url.searchParams.get("page") || "1");
+  const limit = Number(url.searchParams.get("limit") || "10");
+
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
+  const { data, error } = await supabase
     .from("posts")
-    .select("*, profiles(username, avatar_url)")
-    .order("created_at", { ascending: false });
+    .select(`
+      *,
+      profiles:author (
+        username,
+        avatar_url
+      )
+    `)
+    .order("created_at", { ascending: false })
+    .range(from, to);
 
-  return NextResponse.json({ posts });
+  if (error) {
+    console.error(error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({
+    posts: data,
+    page,
+    limit,
+  });
 }
