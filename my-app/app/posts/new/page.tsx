@@ -39,30 +39,36 @@ export default function NewPostPage() {
       alert("Content is required");
       return;
     }
-
+  
     setCreating(true);
-
+  
+    const token = localStorage.getItem("access_token");
+  
     const res = await fetch("/api/posts", {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,   // 🔥 REQUIRED
+      },
       body: JSON.stringify({
         content,
         image_url: imageUrl,
         category,
       }),
-      headers: { "Content-Type": "application/json" },
     });
-
+  
     const json = await res.json();
     setCreating(false);
-
+  
     if (!res.ok) {
       alert(json.error);
       return;
     }
-
+  
     alert("Post created!");
     window.location.href = `/posts/${json.post.id}`;
   }
+  
 
   return (
     <div className="max-w-xl p-6 mx-auto">

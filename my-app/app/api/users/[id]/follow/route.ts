@@ -1,12 +1,32 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 
-export async function POST(req: Request, { params }: any) {
-  const targetId = params.id;
-  const supabase = supabaseServer();
+async function getUser(req: Request) {
+  const auth = req.headers.get("authorization");
+  const token = auth?.replace("Bearer ", "").trim();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const supabaseForAuth = supabaseServer();
+
+  if (!token) return { user: null, supabase: supabaseForAuth };
+
+  const { data, error } = await supabaseForAuth.auth.getUser(token);
+
+  if (error || !data?.user)
+    return { user: null, supabase: supabaseForAuth };
+
+  return {
+    user: data.user,
+    supabase: supabaseServer(token),
+  };
+}
+
+export async function POST(req: Request, context: { params: Promise<{ id: string }> }) {
+  const { id: targetId } = await context.params;   // 🔥 FIXED unwrap
+
+  const { user, supabase } = await getUser(req);
+
+  if (!user)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   if (user.id === targetId)
     return NextResponse.json({ error: "Can't follow yourself" }, { status: 400 });
@@ -15,19 +35,20 @@ export async function POST(req: Request, { params }: any) {
     .from("follows")
     .insert({ follower: user.id, following: targetId });
 
-  if (error && error.code !== "23505") {
+  if (error && error.code !== "23505")
     return NextResponse.json({ error: error.message }, { status: 400 });
-  }
 
   return NextResponse.json({ message: "Followed" });
 }
 
-export async function DELETE(req: Request, { params }: any) {
-  const targetId = params.id;
-  const supabase = supabaseServer();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export async function DELETE(req: Request, context: { params: Promise<{ id: string }> }) {
+  const { id: targetId } = await context.params;
+
+  const { user, supabase } = await getUser(req);
+
+  if (!user)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   await supabase
     .from("follows")
@@ -37,3 +58,4 @@ export async function DELETE(req: Request, { params }: any) {
 
   return NextResponse.json({ message: "Unfollowed" });
 }
+

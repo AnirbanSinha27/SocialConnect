@@ -2,44 +2,33 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 
-/**
- * Extract user from request token
- */
 async function getUser(req: Request) {
   const authHeader = req.headers.get("authorization");
   const token = authHeader?.replace("Bearer ", "").trim();
 
-  const supabaseForAuth = supabaseServer(); // no token for getUser()
+  const supabaseForAuth = supabaseServer();
 
-  if (!token) {
-    return { user: null, token: null, supabase: supabaseForAuth };
-  }
+  if (!token) return { user: null, supabase: supabaseForAuth, token: null };
 
   const { data, error } = await supabaseForAuth.auth.getUser(token);
 
-  if (error || !data?.user) {
-    return { user: null, token: null, supabase: supabaseForAuth };
-  }
+  if (error || !data?.user)
+    return { user: null, supabase: supabaseForAuth, token: null };
 
   return {
     user: data.user,
     token,
-    supabase: supabaseServer(token), // 🔥 attach JWT here!
+    supabase: supabaseServer(token),
   };
 }
 
-
-/**
- * GET: return current user's profile
- */
 export async function GET(req: Request) {
-  const { user, token, supabase } = await getUser(req);
+  const { user, supabase } = await getUser(req);
 
-  if (!user) {
+  if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
-  const { data: profile, error } = await supabase
+  const { data: profile } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
@@ -48,16 +37,11 @@ export async function GET(req: Request) {
   return NextResponse.json({ user: profile });
 }
 
-
-/**
- * PUT: update profile
- */
 export async function PUT(req: Request) {
-  const { user, token, supabase } = await getUser(req);
+  const { user, supabase } = await getUser(req);
 
-  if (!user) {
+  if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
   const payload = await req.json();
 
@@ -68,10 +52,8 @@ export async function PUT(req: Request) {
     .select()
     .single();
 
-  if (error) {
-    console.error(error);
+  if (error)
     return NextResponse.json({ error: error.message }, { status: 400 });
-  }
 
   return NextResponse.json({ user: data });
 }

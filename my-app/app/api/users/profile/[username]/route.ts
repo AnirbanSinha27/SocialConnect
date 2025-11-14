@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 
-export async function GET(req: Request, { params }: any) {
-  const { username } = params;
+export async function GET(req: Request, context: { params: Promise<{ username: string }> }) {
+  const { username } = await context.params;
 
   const supabase = supabaseServer();
 
@@ -11,7 +11,7 @@ export async function GET(req: Request, { params }: any) {
     .from("profiles")
     .select("*")
     .eq("username", username)
-    .single();
+    .maybeSingle();
 
   if (!profile) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
