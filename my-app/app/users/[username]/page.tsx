@@ -11,7 +11,6 @@ export default function UserProfilePage({ params }: any) {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   async function loadProfile() {
-    // Fetch profile of the PAGE USER
     const res = await fetch(`/api/users/profile/${username}`);
     const json = await res.json();
 
@@ -22,7 +21,6 @@ export default function UserProfilePage({ params }: any) {
 
     setData(json);
 
-    // ---- Fetch logged-in user with token ----
     const token = localStorage.getItem("access_token");
 
     if (token) {
@@ -37,7 +35,6 @@ export default function UserProfilePage({ params }: any) {
       if (meRes.ok && meJson.user) {
         setCurrentUserId(meJson.user.id);
 
-        // ---- Check follow status ----
         const followRes = await fetch(
           `/api/users/${json.profile.id}/followers`,
           { headers: { Authorization: `Bearer ${token}` } }
@@ -59,12 +56,12 @@ export default function UserProfilePage({ params }: any) {
 
   async function toggleFollow() {
     const token = localStorage.getItem("access_token");
-  
+
     if (!token) {
       alert("Login first");
       return;
     }
-  
+
     if (isFollowing) {
       await fetch(`/api/users/${data.profile.id}/follow`, {
         method: "DELETE",
@@ -83,54 +80,92 @@ export default function UserProfilePage({ params }: any) {
       setIsFollowing(true);
     }
   }
-  
 
   useEffect(() => {
     loadProfile();
   }, []);
 
-  if (loading) return <div className="p-6">Loading...</div>;
-  if (!data) return <div>User not found</div>;
+  if (loading)
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-zinc-700 border-t-white rounded-full animate-spin"></div>
+      </div>
+    );
+
+  if (!data)
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <p className="text-zinc-400">User not found</p>
+      </div>
+    );
 
   const { profile, stats } = data;
 
   return (
-    <div className="max-w-xl p-6 mx-auto">
-      <div className="flex items-center gap-4">
-        <img
-          src={profile.avatar_url || "/default-avatar.png"}
-          className="object-cover w-20 h-20 border rounded-full"
-        />
-        <div>
-          <h1 className="text-xl font-bold">@{profile.username}</h1>
-          <p className="text-gray-600">
-            {profile.first_name} {profile.last_name}
-          </p>
+    <div className="min-h-screen bg-black">
+      <div className="max-w-2xl mx-auto border-x border-zinc-800">
+        <div className="border-b border-zinc-800 p-6">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h1 className="text-2xl font-bold text-white mb-1">
+                {profile.username}
+              </h1>
+              {(profile.first_name || profile.last_name) && (
+                <p className="text-zinc-500 text-sm">
+                  {profile.first_name} {profile.last_name}
+                </p>
+              )}
+            </div>
+
+            {currentUserId && currentUserId !== profile.id && (
+              <button
+                onClick={toggleFollow}
+                className={`px-6 py-2 rounded-lg font-semibold transition-all duration-200 ${
+                  isFollowing
+                    ? "bg-zinc-900 text-white border border-zinc-700 hover:border-zinc-600"
+                    : "bg-blue-600 text-white hover:bg-blue-700"
+                }`}
+              >
+                {isFollowing ? "Following" : "Follow"}
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-8 mb-6">
+            <img
+              src={profile.avatar_url || "/default-avatar.png"}
+              className="w-32 h-32 rounded-full object-cover ring-2 ring-zinc-800"
+              alt={profile.username}
+            />
+            <div className="flex gap-8">
+              <div className="text-center">
+                <p className="text-white text-2xl font-bold">
+                  {stats?.posts || 0}
+                </p>
+                <span className="text-zinc-400 text-sm">Posts</span>
+              </div>
+              <div className="text-center">
+                <p className="text-white text-2xl font-bold">
+                  {stats?.followers || 0}
+                </p>
+                <span className="text-zinc-400 text-sm">Followers</span>
+              </div>
+              <div className="text-center">
+                <p className="text-white text-2xl font-bold">
+                  {stats?.following || 0}
+                </p>
+                <span className="text-zinc-400 text-sm">Following</span>
+              </div>
+            </div>
+          </div>
+
+          {profile.bio && (
+            <p className="text-white leading-relaxed text-sm">
+              {profile.bio}
+            </p>
+          )}
         </div>
       </div>
-
-      <p className="mt-4 text-gray-800">{profile.bio}</p>
-
-      <div className="flex gap-6 mt-4 text-sm">
-        <span>
-          <b>{stats.followers}</b> Followers
-        </span>
-        <span>
-          <b>{stats.following}</b> Following
-        </span>
-      </div>
-
-      {/* Show follow button only when logged-in and not your own profile */}
-      {currentUserId && currentUserId !== profile.id && (
-        <button
-          onClick={toggleFollow}
-          className={`mt-4 w-full p-2 rounded text-white ${
-            isFollowing ? "bg-red-500" : "bg-blue-600"
-          }`}
-        >
-          {isFollowing ? "Unfollow" : "Follow"}
-        </button>
-      )}
     </div>
   );
 }
