@@ -19,7 +19,7 @@ export default function RegisterPage() {
 
   async function handleRegister(e: any) {
     e.preventDefault();
-    
+
     if (form.password !== form.confirmPassword) {
       alert("Passwords do not match");
       return;
@@ -27,9 +27,22 @@ export default function RegisterPage() {
 
     setLoading(true);
 
+    // 🔥 Split username into first & last name for backend
+    const nameParts = form.username.trim().split(" ");
+    const first_name = nameParts[0] || "";
+    const last_name = nameParts.slice(1).join(" ") || "";
+
+    const payload = {
+      email: form.email,
+      password: form.password,
+      username: form.username,
+      first_name,
+      last_name,
+    };
+
     const res = await fetch("/api/auth/register", {
       method: "POST",
-      body: JSON.stringify(form),
+      body: JSON.stringify(payload),
       headers: { "Content-Type": "application/json" },
     });
 
@@ -37,14 +50,19 @@ export default function RegisterPage() {
     setLoading(false);
 
     if (res.ok) {
-      localStorage.setItem("access_token", data.session.access_token);
-      localStorage.setItem("refresh_token", data.session.refresh_token);
-    
       alert("Registration successful!");
-      window.location.href = "/profile/me";
-    } else {
-      alert(data.error || "Registration failed");
+
+      // If Supabase email confirmation is ON, data.session = null
+      if (data.session) {
+        localStorage.setItem("access_token", data.session.access_token);
+        localStorage.setItem("refresh_token", data.session.refresh_token);
+      }
+
+      window.location.href = "/auth/login";
+      return;
     }
+
+    alert(data.error || "Registration failed");
   }
 
   return (
@@ -53,6 +71,7 @@ export default function RegisterPage() {
         
         {/* Register Form */}
         <form onSubmit={handleRegister} className="space-y-3">
+
           {/* Username Input */}
           <div className="relative">
             <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
@@ -94,16 +113,12 @@ export default function RegisterPage() {
               className="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-800 border border-gray-700 rounded placeholder-gray-500 text-white focus:outline-none focus:border-gray-600 focus:bg-gray-800 transition-colors"
             />
             <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute cursor-pointer right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-          >
-            {showPassword ? (
-              <span>hide</span>
-            ) : (
-              <span>show</span>
-            )}
-      </button>
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute cursor-pointer right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+            >
+              {showPassword ? <span>hide</span> : <span>show</span>}
+            </button>
           </div>
 
           {/* Confirm Password Input */}
@@ -146,7 +161,6 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        {/* Footer */}
         <div className="text-center mt-6 text-xs text-gray-600 space-y-2">
           <p>With ❤️ from SocialConnect.</p>
         </div>
