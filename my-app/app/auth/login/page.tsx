@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Mail, Lock, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -40,42 +41,70 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen px-4">
-      <form onSubmit={handleLogin} className="w-full max-w-md p-6 space-y-4 border rounded-xl">
-        <h2 className="text-2xl font-bold">Login</h2>
+    <div className="flex items-center justify-center min-h-screen bg-gray-900 px-4">
+      <div className="w-full max-w-sm">
+        
+        {/* Login Form */}
+        <form onSubmit={handleLogin} className="space-y-3">
+          {/* Email Input */}
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
+            <input
+              name="email"
+              type="email"
+              placeholder="Phone number, username or email"
+              value={form.email}
+              onChange={handleChange}
+              required
+              className="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-800 border border-gray-700 rounded placeholder-gray-500 text-white focus:outline-none focus:border-gray-600 focus:bg-gray-800 transition-colors"
+            />
+          </div>
 
-        <input
-          name="email"
-          type="email"
-          placeholder="Email"
-          className="w-full p-2 border rounded"
-          onChange={handleChange}
-          required
-        />
+          {/* Password Input */}
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
+            <input
+              name="password"
+              type="password"
+              placeholder="Password"
+              value={form.password}
+              onChange={handleChange}
+              required
+              className="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-800 border border-gray-700 rounded placeholder-gray-500 text-white focus:outline-none focus:border-gray-600 focus:bg-gray-800 transition-colors"
+            />
+          </div>
 
-        <input
-          name="password"
-          type="password"
-          placeholder="Password"
-          className="w-full p-2 border rounded"
-          onChange={handleChange}
-          required
-        />
+          {/* Login Button */}
+          <button
+            disabled={loading}
+            className="w-full py-2.5 mt-2 font-semibold text-white bg-blue-600 rounded hover:bg-blue-700 active:bg-blue-800 disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Logging in...</span>
+              </>
+            ) : (
+              "Log in"
+            )}
+          </button>
+        </form>
 
-        <button
-          disabled={loading}
-          className="w-full p-2 font-medium text-white bg-blue-600 rounded"
-        >
-          {loading ? "Logging in..." : "Login"}
-        </button>
+        {/* Sign Up Link */}
+        <div className="mt-6 p-4 text-center border border-gray-700 rounded bg-gray-800">
+          <p className="text-sm text-gray-300">
+            Don't have an account?{" "}
+            <a href="/auth/register" className="font-semibold text-blue-400 hover:text-blue-300 transition-colors">
+              Sign up
+            </a>
+          </p>
+        </div>
 
-        <p className="text-sm text-center text-gray-600">
-          Don’t have an account?{" "}
-          <a href="/auth/register" className="text-blue-500 underline">
-            Register
-          </a>
-        </p>
-      </form>
+        {/* Footer */}
+        <div className="text-center mt-6 text-xs text-gray-600 space-y-2">
+          <p>Get the app.</p>
+        </div>
+      </div>
     </div>
   );
 }
