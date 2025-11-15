@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState } from "react";
 
 export default function AdminDashboard() {
@@ -10,13 +9,13 @@ export default function AdminDashboard() {
     const res = await fetch("/api/admin/stats", {
       headers: { Authorization: `Bearer ${token}` },
     });
-
+    
     if (res.status === 403) {
       alert("Only admins can access this page");
-      window.location.href = "/profile/me"; // redirect to home
+      window.location.href = "/profile/me";
       return;
     }
-
+    
     const json = await res.json();
     if (res.ok) setStats(json);
   }
@@ -25,17 +24,49 @@ export default function AdminDashboard() {
     loadStats();
   }, []);
 
-  if (!stats) return <div>Loading stats...</div>;
+  if (!stats) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="text-sm text-zinc-500">Loading stats...</div>
+      </div>
+    );
+  }
+
+  const statItems = [
+    { label: "Total Users", value: stats.total_users, icon: "👤" },
+    { label: "Total Posts", value: stats.total_posts, icon: "📝" },
+    { label: "Total Comments", value: stats.total_comments, icon: "💬" },
+    { label: "Total Likes", value: stats.total_likes, icon: "❤️" },
+  ];
 
   return (
-    <div className="bg-gray-800">
-      <h1 className="text-2xl font-bold mb-6">📊 Admin Dashboard</h1>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="border-b border-zinc-800 pb-6">
+        <h1 className="text-2xl font-semibold text-white">Dashboard</h1>
+        <p className="mt-1 text-sm text-zinc-400">
+          Overview of Social Connect platform metrics
+        </p>
+      </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="p-4 bg-black rounded shadow">Users: {stats.total_users}</div>
-        <div className="p-4 bg-black rounded shadow">Posts: {stats.total_posts}</div>
-        <div className="p-4 bg-black rounded shadow">Comments: {stats.total_comments}</div>
-        <div className="p-4 bg-black rounded shadow">Likes: {stats.total_likes}</div>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 gap-px bg-zinc-800 sm:grid-cols-2 lg:grid-cols-4">
+        {statItems.map((stat) => (
+          <div
+            key={stat.label}
+            className="bg-black px-6 py-8 hover:bg-zinc-900 transition-colors"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-zinc-400">{stat.label}</p>
+                <p className="mt-2 text-3xl font-semibold text-white">
+                  {stat.value.toLocaleString()}
+                </p>
+              </div>
+              <span className="text-3xl opacity-50">{stat.icon}</span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
