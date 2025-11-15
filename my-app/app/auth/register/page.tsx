@@ -1,15 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { Mail, Lock, User, Loader2 } from 'lucide-react';
 
 export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({
+    username: "",
     email: "",
     password: "",
-    username: "",
-    first_name: "",
-    last_name: "",
+    confirmPassword: "",
   });
 
   const handleChange = (e: any) => {
@@ -18,6 +19,12 @@ export default function RegisterPage() {
 
   async function handleRegister(e: any) {
     e.preventDefault();
+    
+    if (form.password !== form.confirmPassword) {
+      alert("Passwords do not match");
+      return;
+    }
+
     setLoading(true);
 
     const res = await fetch("/api/auth/register", {
@@ -30,75 +37,120 @@ export default function RegisterPage() {
     setLoading(false);
 
     if (res.ok) {
+      localStorage.setItem("access_token", data.session.access_token);
+      localStorage.setItem("refresh_token", data.session.refresh_token);
+    
       alert("Registration successful!");
-      window.location.href = "/auth/login";
+      window.location.href = "/profile/me";
     } else {
-      alert(data.error || "Something went wrong");
+      alert(data.error || "Registration failed");
     }
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen px-4">
-      <form onSubmit={handleRegister} className="w-full max-w-md p-6 space-y-4 border rounded-xl">
-        <h2 className="text-2xl font-bold">Create an account</h2>
+    <div className="flex items-center justify-center min-h-screen bg-gray-900 px-4">
+      <div className="w-full max-w-sm">
+        
+        {/* Register Form */}
+        <form onSubmit={handleRegister} className="space-y-3">
+          {/* Username Input */}
+          <div className="relative">
+            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
+            <input
+              name="username"
+              type="text"
+              placeholder="Username"
+              value={form.username}
+              onChange={handleChange}
+              required
+              className="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-800 border border-gray-700 rounded placeholder-gray-500 text-white focus:outline-none focus:border-gray-600 focus:bg-gray-800 transition-colors"
+            />
+          </div>
 
-        <input
-          name="email"
-          type="email"
-          placeholder="Email"
-          className="w-full p-2 border rounded"
-          onChange={handleChange}
-          required
-        />
+          {/* Email Input */}
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
+            <input
+              name="email"
+              type="email"
+              placeholder="Email"
+              value={form.email}
+              onChange={handleChange}
+              required
+              className="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-800 border border-gray-700 rounded placeholder-gray-500 text-white focus:outline-none focus:border-gray-600 focus:bg-gray-800 transition-colors"
+            />
+          </div>
 
-        <input
-          name="username"
-          type="text"
-          placeholder="Username"
-          className="w-full p-2 border rounded"
-          onChange={handleChange}
-          required
-        />
+          {/* Password Input */}
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
+            <input
+              name="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              value={form.password}
+              onChange={handleChange}
+              required
+              className="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-800 border border-gray-700 rounded placeholder-gray-500 text-white focus:outline-none focus:border-gray-600 focus:bg-gray-800 transition-colors"
+            />
+            <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute cursor-pointer right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+          >
+            {showPassword ? (
+              <span>hide</span>
+            ) : (
+              <span>show</span>
+            )}
+      </button>
+          </div>
 
-        <input
-          name="first_name"
-          type="text"
-          placeholder="First Name"
-          className="w-full p-2 border rounded"
-          onChange={handleChange}
-        />
+          {/* Confirm Password Input */}
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
+            <input
+              name="confirmPassword"
+              type="password"
+              placeholder="Confirm password"
+              value={form.confirmPassword}
+              onChange={handleChange}
+              required
+              className="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-800 border border-gray-700 rounded placeholder-gray-500 text-white focus:outline-none focus:border-gray-600 focus:bg-gray-800 transition-colors"
+            />
+          </div>
 
-        <input
-          name="last_name"
-          type="text"
-          placeholder="Last Name"
-          className="w-full p-2 border rounded"
-          onChange={handleChange}
-        />
+          {/* Register Button */}
+          <button
+            disabled={loading}
+            className="w-full py-2.5 mt-2 font-semibold text-white bg-blue-600 rounded hover:bg-blue-700 active:bg-blue-800 disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Signing up...</span>
+              </>
+            ) : (
+              "Sign up"
+            )}
+          </button>
+        </form>
 
-        <input
-          name="password"
-          type="password"
-          placeholder="Password"
-          className="w-full p-2 border rounded"
-          onChange={handleChange}
-          required
-        />
+        {/* Login Link */}
+        <div className="mt-6 p-4 text-center border border-gray-700 rounded bg-gray-800">
+          <p className="text-sm text-gray-300">
+            Already have an account?{" "}
+            <a href="/auth/login" className="font-semibold text-blue-400 hover:text-blue-300 transition-colors">
+              Log in
+            </a>
+          </p>
+        </div>
 
-        <button
-          disabled={loading}
-          className="w-full p-2 font-medium text-white bg-blue-600 rounded"
-        >
-          {loading ? "Registering..." : "Register"}
-        </button>
-
-        <p className="text-sm text-center text-gray-600">
-          Already have an account?{" "}
-          <a href="/auth/login" className="text-blue-500 underline">
-            Login
-          </a>
-        </p>
-      </form>
+        {/* Footer */}
+        <div className="text-center mt-6 text-xs text-gray-600 space-y-2">
+          <p>With ❤️ from SocialConnect.</p>
+        </div>
+      </div>
     </div>
   );
 }

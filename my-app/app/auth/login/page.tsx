@@ -102,7 +102,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <div className="text-center mt-6 text-xs text-gray-600 space-y-2">
-          <p>Get the app.</p>
+          <p>With ❤️ from SocialConnect.</p>
         </div>
       </div>
     </div>
