@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import SmokeyCursor from "@/components"
+import SmokeyCursor from "@/src/components/lightswind/smokey-cursor"
 import "./globals.css";
 
 const geistSans = Geist({
