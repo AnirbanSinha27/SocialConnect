@@ -85,92 +85,62 @@ export async function GET(
 
 export async function POST(req: Request, context: { params: Promise<{ id: string }> }) {
   const { id: postId } = await context.params;
-  
-  const token = req.headers
-    .get("authorization")
-    ?.replace("Bearer ", "")
-    .trim();
 
+  const token = req.headers.get("authorization")?.replace("Bearer ", "").trim();
   const supabaseAuth = supabaseServer();
 
-  if (!token) {
+  if (!token)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
-  const { data: userData, error: authError } = await supabaseAuth.auth.getUser(token);
-  
-  if (authError || !userData?.user) {
+  const { data: authData } = await supabaseAuth.auth.getUser(token);
+  if (!authData?.user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
-  const user = userData.user;
-  const supabaseAdmin = supabaseServer(); // Use service role to bypass RLS
+  const user = authData.user;
+  const supabaseAdmin = supabaseServer(); // service role
 
-  console.log("👍 Creating like for user:", user.id, "post:", postId);
+  // Get post author
+  const { data: post } = await supabaseAdmin
+    .from("posts")
+    .select("author, like_count")
+    .eq("id", postId)
+    .single();
 
-  // Check if like already exists
-  const { data: existingLike } = await supabaseAdmin
+  if (!post)
+    return NextResponse.json({ error: "Post not found" }, { status: 404 });
+
+  // Do NOT notify when user likes own post
+  const postAuthor = post.author;
+
+  // Check existing like
+  const { data: existing } = await supabaseAdmin
     .from("likes")
     .select("id")
     .eq("user_id", user.id)
     .eq("post_id", postId)
     .maybeSingle();
 
-  if (existingLike) {
-    console.log("⚠️ Like already exists");
-    return NextResponse.json({ liked: true });
-  }
-
-  // Check existing post
-  const { data: post, error: postError } = await supabaseAdmin
-    .from("posts")
-    .select("like_count")
-    .eq("id", postId)
-    .maybeSingle();
-
-  console.log("📝 Current post data:", post);
-  console.log("📝 Post fetch error:", postError);
-
-  if (!post) {
-    return NextResponse.json({ error: "Post not found" }, { status: 404 });
-  }
-
-  // Insert like
-  const { error: insertError } = await supabaseAdmin
-    .from("likes")
-    .insert({ user_id: user.id, post_id: postId });
-
-  console.log("➕ Insert like error:", insertError);
-
-  if (insertError) {
-    if (insertError.code === "23505") {
-      return NextResponse.json({ liked: true });
-    }
-    return NextResponse.json({ error: insertError.message }, { status: 400 });
-  }
-
-  // Increment count
-  const newCount = (post.like_count || 0) + 1;
-  console.log("🔢 Updating like_count from", post.like_count, "to", newCount);
-
-  const { data: updatedPost, error: updateError } = await supabaseAdmin
-    .from("posts")
-    .update({ like_count: newCount })
-    .eq("id", postId)
-    .select();
-
-  console.log("✅ Update result:", updatedPost);
-  console.log("❌ Update error:", updateError);
-
-  if (updateError) {
-    console.error("Failed to update like_count:", updateError);
-    // Rollback
+  if (!existing) {
+    // Insert like
     await supabaseAdmin
       .from("likes")
-      .delete()
-      .eq("user_id", user.id)
-      .eq("post_id", postId);
-    return NextResponse.json({ error: "Failed to update like count" }, { status: 500 });
+      .insert({ user_id: user.id, post_id: postId });
+
+    // Increment like count
+    await supabaseAdmin
+      .from("posts")
+      .update({ like_count: (post.like_count || 0) + 1 })
+      .eq("id", postId);
+  }
+
+  // 🔔 Insert notification (ONLY ONCE)
+  if (!existing && user.id !== postAuthor) {
+    await supabaseAdmin.from("notifications").insert({
+      user_id: postAuthor,   // who receives the notification
+      actor_id: user.id,     // who liked
+      type: "like",
+      post_id: postId,
+    });
   }
 
   return NextResponse.json({ liked: true });

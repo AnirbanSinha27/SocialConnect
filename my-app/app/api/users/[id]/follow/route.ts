@@ -20,8 +20,11 @@ async function getUser(req: Request) {
   };
 }
 
-export async function POST(req: Request, context: { params: Promise<{ id: string }> }) {
-  const { id: targetId } = await context.params;   // 🔥 FIXED unwrap
+export async function POST(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id: targetId } = await context.params; // unwrap param
 
   const { user, supabase } = await getUser(req);
 
@@ -29,14 +32,33 @@ export async function POST(req: Request, context: { params: Promise<{ id: string
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   if (user.id === targetId)
-    return NextResponse.json({ error: "Can't follow yourself" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Can't follow yourself" },
+      { status: 400 }
+    );
 
+  // Try inserting follow
   const { error } = await supabase
     .from("follows")
     .insert({ follower: user.id, following: targetId });
 
-  if (error && error.code !== "23505")
+  // If follow already exists ignore, else return error
+  if (error && error.code !== "23505") {
     return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  // 🔔 create notification only if:
+  // - follow succeeded or already existed
+  // - followed user is not the same user (already checked)
+  if (targetId !== user.id) {
+    const supabaseAdmin = supabaseServer(); // service role to bypass RLS
+    await supabaseAdmin.from("notifications").insert({
+      user_id: targetId, // the user being followed
+      actor_id: user.id, // who followed
+      type: "follow",
+      post_id: null
+    });
+  }
 
   return NextResponse.json({ message: "Followed" });
 }
