@@ -52,7 +52,7 @@ export default function LoginPage() {
             <input
               name="email"
               type="email"
-              placeholder="Phone number, username or email"
+              placeholder="Email"
               value={form.email}
               onChange={handleChange}
               required
