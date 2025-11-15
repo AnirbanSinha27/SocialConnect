@@ -18,34 +18,37 @@ export default function RegisterPage() {
   };
 
   async function handleRegister(e: any) {
-    e.preventDefault();
-    
-    if (form.password !== form.confirmPassword) {
-      alert("Passwords do not match");
-      return;
-    }
+  e.preventDefault();
 
-    setLoading(true);
-
-    const res = await fetch("/api/auth/register", {
-      method: "POST",
-      body: JSON.stringify(form),
-      headers: { "Content-Type": "application/json" },
-    });
-
-    const data = await res.json();
-    setLoading(false);
-
-    if (res.ok) {
-      localStorage.setItem("access_token", data.session.access_token);
-      localStorage.setItem("refresh_token", data.session.refresh_token);
-    
-      alert("Registration successful!");
-      window.location.href = "/profile/me";
-    } else {
-      alert(data.error || "Registration failed");
-    }
+  if (form.password !== form.confirmPassword) {
+    alert("Passwords do not match");
+    return;
   }
+
+  setLoading(true);
+
+  const res = await fetch("/api/auth/register", {
+    method: "POST",
+    body: JSON.stringify({
+      email: form.email,
+      password: form.password,
+      username: form.username,
+      first_name: form.username.split(".")[0] || "",
+      last_name: form.username.split(".")[1] || "",
+    }),
+    headers: { "Content-Type": "application/json" },
+  });
+
+  const data = await res.json();
+  setLoading(false);
+
+  if (res.ok) {
+    alert("Registration successful! Please login.");
+    window.location.href = "/auth/login";
+  } else {
+    alert(data.error || "Registration failed");
+  }
+}
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-900 px-4">
